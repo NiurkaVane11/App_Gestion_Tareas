@@ -10,11 +10,12 @@ public class Frame extends JFrame {
     private CardLayout cardLayout;
 
     public Frame() {
-        this.setTitle("");
+        this.setTitle("Gestión de Tareas");
         this.setSize(500, 800);
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         cardLayout = new CardLayout();
+        this.getContentPane().setLayout(cardLayout);
 
         // Establecer el ícono de la ventana
         ImageIcon imagen = new ImageIcon("C:\\App_Gestion_Tareas\\icono.png");
@@ -22,8 +23,9 @@ public class Frame extends JFrame {
 
         this.setResizable(false);
 
-        Panel panel = new Panel();
-        add(panel);
+        // Agregar el Panel principal
+        Panel panel = new Panel(this);
+        this.getContentPane().add(panel, "PanelPrincipal");
 
         this.setVisible(true);
     }

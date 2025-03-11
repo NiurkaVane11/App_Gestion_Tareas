@@ -10,14 +10,17 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
+import javax.swing.JFrame;
 
 public class Panel extends JPanel {
 
@@ -35,8 +38,10 @@ public class Panel extends JPanel {
     private GestionTareasApp gesTareas; // Instancia de GestionTareasApp
     private JPanel tareaSeleccionada; // Panel de la tarea seleccionada
     private Set<String> tareasCompletadas; // Lista de tareas completadas
+    private JFrame parentFrame;
 
-    public Panel() {
+    public Panel(JFrame parentFrame) {
+        this.parentFrame = parentFrame;
         setLayout(new GridBagLayout());
         setBackground(new Color(223, 253, 222));
         GridBagConstraints constraints = new GridBagConstraints();
@@ -90,14 +95,14 @@ public class Panel extends JPanel {
                 try {
                     String tarea = texto1.getText();
                     if (tarea.isEmpty()) {
-                        Mensajes.showWarningMessage("Escriba la tarea", "Advertencia");
+                        Mensajes.showWarningMessage(parentFrame, "Por favor, ingrese una tarea", "Advertencia");
                     } else {
                         gesTareas.agregarTarea(tarea);
                         texto1.setText("");
                         actualizarLista();
                     }
                 } catch (Exception ex) {
-                    Mensajes.showErrorMessage("Ha ocurrido un error: " + ex.getMessage(), "Error");
+                    Mensajes.showErrorMessage(parentFrame, "Ha ocurrido un error: " + ex.getMessage(), "Error");
                 }
             }
         });
@@ -129,6 +134,30 @@ public class Panel extends JPanel {
         constraints.insets = new Insets(0, 10, 10, 0);
         add(botonBuscar, constraints);
 
+        botonBuscar.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    String tarea = texto2.getText();
+                    if (tarea.isEmpty()) {
+                        Mensajes.showWarningMessage(parentFrame, "Por favor, ingrese una tarea para buscar",
+                                "Advertencia");
+                    } else {
+
+                        List<String> tareasFiltradas = gesTareas.buscarTareasRegex(tarea);
+                        if (tareasFiltradas.isEmpty()) {
+                            JOptionPane.showMessageDialog(parentFrame, "No se encontraron resultados", "Información",
+                                    JOptionPane.INFORMATION_MESSAGE);
+                        } else {
+                            actualizarLista(tareasFiltradas);
+                        }
+                    }
+                } catch (Exception ex) {
+                    Mensajes.showErrorMessage(parentFrame, "Ha ocurrido un error: " + ex.getMessage(), "Error");
+                }
+            }
+        });
+
         panelLista = new JPanel();
         panelLista.setLayout(new GridBagLayout());
         panelLista.setBackground(Color.WHITE);
@@ -159,7 +188,9 @@ public class Panel extends JPanel {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if (tareaSeleccionada == null) {
-                    Mensajes.showWarningMessage("Seleccione una tarea para marcar como completada", "Advertencia");
+                    Mensajes.showWarningMessage(parentFrame,
+                            "Por favor, seleccione una tarea para marcar como completada",
+                            "Advertencia");
                     return; // Evita que el código continúe si no hay tarea seleccionada
                 }
 
@@ -169,7 +200,7 @@ public class Panel extends JPanel {
                     tareaSeleccionada.setBackground(Color.decode("#C6A170"));
                     tareaSeleccionada = null; // Resetea la tarea seleccionada para forzar una nueva selección
                 } catch (Exception ex) {
-                    Mensajes.showErrorMessage("Ha ocurrido un error: " + ex.getMessage(), "Error");
+                    Mensajes.showErrorMessage(parentFrame, "Ha ocurrido un error: " + ex.getMessage(), "Error");
                 }
             }
         });
@@ -190,7 +221,8 @@ public class Panel extends JPanel {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if (tareaSeleccionada == null) {
-                    Mensajes.showWarningMessage("Seleccione una tarea para eliminar", "Advertencia");
+                    Mensajes.showWarningMessage(parentFrame, "Por favor, seleccione una tarea para eliminarla",
+                            "Advertencia");
                     return; // Evita que el código continúe si no hay tarea seleccionada
                 }
 
@@ -201,12 +233,11 @@ public class Panel extends JPanel {
                     tareaSeleccionada = null; // Resetea la tarea seleccionada para forzar una nueva selección
                     actualizarLista();
                 } catch (Exception ex) {
-                    Mensajes.showErrorMessage("Ha ocurrido un error: " + ex.getMessage(), "Error");
+                    Mensajes.showErrorMessage(parentFrame, "Ha ocurrido un error: " + ex.getMessage(), "Error");
                 }
             }
-        }); // Add this closing brace to complete the ActionListener
-
-    } // Add this closing brace to complete the constructor
+        });
+    }
 
     private void actualizarLista() {
         panelLista.removeAll();
@@ -220,6 +251,71 @@ public class Panel extends JPanel {
         gbc.insets = new Insets(5, 5, 5, 5);
 
         for (String tarea : gesTareas.getTareas()) {
+            JPanel tareaPanel = new JPanel(new GridBagLayout());
+
+            if (tareasCompletadas.contains(tarea)) {
+                tareaPanel.setBackground(Color.decode("#C6A170"));
+            } else {
+                tareaPanel.setBackground(Color.WHITE);
+            }
+
+            JButton botonSeleccion = new JButton("\u25CF");
+            configurarBotonSeleccion(botonSeleccion);
+            botonSeleccion.setFont(new Font("Arial", Font.BOLD, 20));
+            botonSeleccion.setBorder(BorderFactory.createEmptyBorder());
+            botonSeleccion.setBackground(Color.WHITE);
+            botonSeleccion.setForeground(Color.decode("#707070"));
+            botonSeleccion.setFocusPainted(false);
+            botonSeleccion.setPreferredSize(new Dimension(30, 30));
+
+            botonSeleccion.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    if (tareaSeleccionada != null) {
+                        String tareaAnterior = ((JLabel) tareaSeleccionada.getComponent(1)).getText();
+                        if (!tareasCompletadas.contains(tareaAnterior)) {
+                            tareaSeleccionada.setBackground(Color.WHITE);
+                        }
+                    }
+                    tareaSeleccionada = tareaPanel;
+                    tareaSeleccionada.setBackground(Color.LIGHT_GRAY);
+                }
+            });
+
+            JLabel tareaLabel = new JLabel(tarea);
+            tareaLabel.setFont(new Font("Arial", Font.PLAIN, 16));
+            tareaLabel.setForeground(Color.decode("#707070"));
+
+            GridBagConstraints gbcTarea = new GridBagConstraints();
+            gbcTarea.gridx = 0;
+            gbcTarea.gridy = 0;
+            gbcTarea.anchor = GridBagConstraints.WEST;
+            tareaPanel.add(botonSeleccion, gbcTarea);
+
+            gbcTarea.gridx = 1;
+            gbcTarea.insets = new Insets(0, 10, 0, 0);
+            tareaPanel.add(tareaLabel, gbcTarea);
+
+            panelLista.add(tareaPanel, gbc);
+            gbc.gridy++;
+        }
+
+        panelLista.revalidate();
+        panelLista.repaint();
+    }
+
+    private void actualizarLista(List<String> tareasFiltradas) {
+        panelLista.removeAll();
+        panelLista.revalidate();
+        panelLista.repaint();
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.insets = new Insets(5, 5, 5, 5);
+
+        for (String tarea : tareasFiltradas) {
             JPanel tareaPanel = new JPanel(new GridBagLayout());
 
             if (tareasCompletadas.contains(tarea)) {
